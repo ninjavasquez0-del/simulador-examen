@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de exámenes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Literata:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#fbfcfd;--grid:#e3eaf2;--ink:#1f2a44;--mut:#5d6985;--pen:#2447b8;--penx:#fff;--red:#c8321f;--grn:#2f7d4f;--part:#a15c00;--hl:#fde68a;--line:#c9d3e0;--field:#fff}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--paper:#161b26;--grid:#202838;--ink:#e6eaf3;--mut:#9aa6c0;--pen:#8fb0ff;--penx:#10131c;--red:#ff8a78;--grn:#7fd6a0;--part:#f0b95a;--hl:#5a4a12;--line:#34405a;--field:#1c2230}}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font:17px/1.6 Literata,Georgia,"Times New Roman",serif;background:var(--grid) linear-gradient(var(--paper) 1px,transparent 1px) 0 0/28px 28px}
+.sheet{max-width:720px;margin:24px auto;background:var(--paper);padding:30px 26px 44px 58px;border-left:2px solid color-mix(in srgb,var(--red) 60%,transparent);box-shadow:0 1px 14px rgba(20,30,60,.14)}
+@media (max-width:600px){.sheet{margin:0;padding:22px 16px 40px 30px;box-shadow:none}}
+h1{font-size:1.9rem;line-height:1.2;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 22px}
+:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+label{display:block;font-size:.85rem;color:var(--mut);margin:12px 0 3px}
+input,select,textarea{font:inherit;color:inherit;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%}
+textarea{resize:vertical;min-height:120px}
+.under{border:0;border-bottom:1.5px solid var(--ink);border-radius:0;background:transparent}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:6px 0 20px}
+@media (max-width:560px){.row{grid-template-columns:1fr;gap:4px}}
+button{font:700 1rem Literata,Georgia,serif;background:var(--pen);color:var(--penx);border:0;border-radius:6px;padding:11px 18px;cursor:pointer}
+button.ghost{background:transparent;color:var(--pen);border:1.5px solid var(--pen)}
+button:disabled{opacity:.5;cursor:progress}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.st{font-size:.9rem;color:var(--mut);margin:8px 0 0;min-height:1.3em}
+.st.err{color:var(--red)}
+.conn{border:1px dashed var(--line);border-radius:6px;padding:10px 14px;margin-bottom:22px}
+.conn summary{cursor:pointer;font-weight:700}
+.conn p{font-size:.9rem;color:var(--mut);margin:8px 0}
+a{color:var(--pen)}
+.drop{display:block;font-size:1rem;color:var(--ink);border:1.5px dashed var(--pen);border-radius:6px;padding:18px 12px;text-align:center;cursor:pointer;margin:0}
+.drop.on{background:var(--hl)}
+.drop input{display:none}
+.q{display:grid;grid-template-columns:3.7rem 1fr;gap:4px;padding:18px 0;border-top:1px solid var(--line)}
+.num{font-weight:700}
+.kind{font-size:.85rem;color:var(--mut);font-style:italic;margin:0}
+.qt{font-weight:700;margin:2px 0 12px;white-space:pre-wrap}
+.opt{display:flex;gap:8px;align-items:baseline;padding:6px 8px;margin:0 0 4px;border-radius:6px;font-size:1rem;color:var(--ink);cursor:pointer}
+.opt:has(input:checked){background:var(--hl)}
+.opt input{width:auto;margin:0}
+.opt.n{cursor:default}
+.opt.c span{background:linear-gradient(transparent 55%,var(--hl) 55%)}
+.opt.w span{color:var(--red);text-decoration:line-through}
+.ruled{border:0;border-radius:0;background:repeating-linear-gradient(transparent,transparent 31px,var(--line) 31px,var(--line) 32px) 0 6px;line-height:32px;padding:0 4px;min-height:132px}
+.mark{display:block;font:600 1.6rem/1 Caveat,"Segoe Print","Bradley Hand",cursive;margin-top:4px}
+.mark.ok{color:var(--grn)}.mark.bad{color:var(--red)}.mark.part{color:var(--part)}
+.score{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin:8px 0 26px}
+.grade{font:600 3.6rem/1 Caveat,"Segoe Print","Bradley Hand",cursive;color:var(--red);border:3px solid var(--red);border-radius:52% 48% 55% 45%/48% 55% 45% 52%;padding:.12em .42em;transform:rotate(-4deg)}
+.score p{margin:0 0 4px}
+.who{margin:0 0 6px}
+.ans{margin:6px 0 0;padding-left:12px;border-left:3px solid var(--line);white-space:pre-wrap;font-size:.95rem}
+.ans b{display:block;font-size:.8rem;color:var(--mut);font-weight:400;font-style:italic}
+.fb{font:600 1.45rem/1.25 Caveat,"Segoe Print","Bradley Hand",cursive;color:var(--red);margin:10px 0 0;transform:rotate(-.5deg)}
+.fb.ok{color:var(--grn)}.fb.part{color:var(--part)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="sheet">
+<h1>Simulador de exámenes</h1>
+<p class="sub">Pega o sube tus apuntes y practica con preguntas hechas a partir de ellos.</p>
+
+<details id="cfg" class="conn">
+<summary>Conexión gratuita con Groq o Gemini</summary>
+<p>Necesitas al menos una clave gratuita. Se guardan solo en este navegador, nunca dentro del archivo. Si pones las dos, la segunda toma el relevo cuando la primera llegue a su límite.</p>
+<label for="kg">Clave de Groq (<a href="https://console.groq.com/keys" target="_blank" rel="noopener">conseguir clave</a>)</label>
+<input id="kg" type="password" autocomplete="off" placeholder="gsk_…">
+<label for="mg">Modelo de Groq</label>
+<input id="mg" autocomplete="off">
+<label for="kk">Clave de Gemini (<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">conseguir clave</a>)</label>
+<input id="kk" type="password" autocomplete="off" placeholder="AIza…">
+<label for="mm">Modelo de Gemini</label>
+<input id="mm" autocomplete="off">
+<p>Con Gemini gratis, Google puede usar tus textos para mejorar sus productos.</p>
+<button class="ghost" id="test">Probar conexión</button>
+<div class="st" id="cs"></div>
+</details>
+
+<section id="setup">
+  <label class="drop" id="dz">
+    <input type="file" id="file" accept=".pdf,.txt,.md,.csv,text/plain,application/pdf" multiple>
+    Sube un PDF o archivo de texto<br><small>o arrástralo aquí</small>
+  </label>
+  <div class="st" id="fst"></div>
+  <label for="src">Material del examen (puedes pegarlo o editarlo)</label>
+  <textarea id="src" placeholder="Pega aquí el texto sobre el que quieres que sea el examen"></textarea>
+  <div class="st" id="cnt"></div>
+  <div class="row">
+    <div><label for="n">Preguntas</label><input class="under" type="number" id="n" min="1" max="15" value="8"></div>
+    <div><label for="type">Tipo</label><select class="under" id="type"><option value="mix">Mixto</option><option value="mc">Solo opción múltiple</option><option value="open">Solo abiertas</option></select></div>
+    <div><label for="diff">Dificultad</label><select class="under" id="diff"><option>fácil</option><option selected>media</option><option>difícil</option></select></div>
+  </div>
+  <button id="go">Generar examen</button>
+  <div class="st" id="gst"></div>
+</section>
+
+<section id="exam" hidden>
+  <p class="st who" id="who"></p>
+  <div id="qs"></div>
+  <div class="acts"><button id="sub">Entregar examen</button><button class="ghost" id="back1">Cancelar</button></div>
+  <div class="st" id="sst"></div>
+</section>
+
+<section id="res" hidden>
+  <div class="score">
+    <span class="grade" id="pct"></span>
+    <div><p id="sum"></p>
+      <div class="acts"><button id="again">Otro examen con el mismo material</button><button class="ghost" id="back2">Cambiar material</button></div>
+      <div class="st" id="rst"></div></div>
+  </div>
+  <div id="rv"></div>
+</section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const ls={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+const DG='openai/gpt-oss-120b',DM='gemini-flash-latest';
+const st=(el,m,e)=>{el.textContent=m||'';el.className=el.className.replace(/ ?err/,'')+(e?' err':'')};
+const show=id=>{['setup','exam','res'].forEach(s=>$('#'+s).hidden=s!==id);window.scrollTo(0,0)};
+const mk=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+let exam=[],ans=[],used='';
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* ---------- Conexión con los modelos gratuitos ---------- */
+[['kg','k_groq'],['mg','m_groq'],['kk','k_gem'],['mm','m_gem']].forEach(([id,k])=>{
+  const el=$('#'+id);el.value=ls.get(k);
+  el.addEventListener('input',()=>{ls.set(k,el.value.trim());cfgst()});
+});
+$('#mg').placeholder=DG;$('#mm').placeholder=DM;
+function cfgst(){
+  const a=[];if(ls.get('k_groq'))a.push('Groq');if(ls.get('k_gem'))a.push('Gemini');
+  st($('#cs'),a.length?'Conectado: '+a.join(' y ')+(a.length>1?'. Si uno falla, se usa el otro.':'.'):'Todavía no hay claves.');
+}
+cfgst();
+if(!ls.get('k_groq')&&!ls.get('k_gem'))$('#cfg').open=true;
+
+async function apiErr(r){
+  let m='';try{const j=await r.json();m=(j.error&&j.error.message)||''}catch(e){}
+  const e=new Error((r.status+' '+m).slice(0,200));e.status=r.status;return e;
+}
+async function groq(p,key,model){
+  const body={model,messages:[{role:'user',content:p}],temperature:0.5,max_completion_tokens:4000};
+  if(/gpt-oss/.test(model))body.reasoning_effort='low';
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
+  if(!r.ok)throw await apiErr(r);
+  const j=await r.json();return j.choices[0].message.content||'';
+}
+async function gemini(p,key,model){
+  const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:[{text:p}]}],generationConfig:{responseMimeType:'application/json'}})});
+  if(!r.ok)throw await apiErr(r);
+  const j=await r.json();return j.candidates[0].content.parts.map(x=>x.text||'').join('');
+}
+async function ask(p){
+  const provs=[];
+  if(ls.get('k_groq'))provs.push(['Groq',()=>groq(p,ls.get('k_groq'),ls.get('m_groq')||DG)]);
+  if(ls.get('k_gem'))provs.push(['Gemini',()=>gemini(p,ls.get('k_gem'),ls.get('m_gem')||DM)]);
+  if(!provs.length){$('#cfg').open=true;throw new Error('NOKEY')}
+  const errs=[];
+  for(const [n,f] of provs){
+    try{const t=await f();used=n;return t}
+    catch(e){errs.push(n+': '+(e.message||'sin conexión'))}
+  }
+  throw new Error(errs.join(' | '));
+}
+function parse(t){
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');
+  if(a<0||b<a)throw new Error('JSON');
+  return JSON.parse(t.slice(a,b+1));
+}
+function errm(e){
+  const m=(e&&e.message)||'';
+  if(m==='NOKEY')return 'Añade primero una clave gratuita de Groq o Gemini en la sección de conexión, arriba.';
+  if(/Failed to fetch|NetworkError|Load failed/i.test(m))return 'No pude conectarme con el servicio. Revisa tu internet y abre esta página desde el navegador, no desde un visor de archivos.';
+  if(e instanceof SyntaxError||m==='JSON')return 'La respuesta llegó cortada. Prueba con menos preguntas.';
+  return 'No funcionó. '+m.slice(0,400);
+}
+$('#test').onclick=async()=>{
+  const b=$('#test');b.disabled=true;st($('#cs'),'Probando…');
+  try{await ask('Responde solo con la palabra: ok');st($('#cs'),'Funciona con '+used+'.')}
+  catch(e){st($('#cs'),errm(e),1)}
+  finally{b.disabled=false}
+};
+
+/* ---------- Material ---------- */
+const MAXC=6500;
+function upd(){
+  const n=$('#src').value.trim().length;
+  st($('#cnt'),n?n.toLocaleString('es')+' caracteres.'+(n>MAXC?' Cada examen usa fragmentos distintos del material, para respetar los límites gratuitos.':''):'');
+}
+$('#src').addEventListener('input',upd);
+function pick(t){
+  if(t.length<=MAXC)return t;
+  const size=1300,parts=[];
+  for(let i=0;i<t.length;i+=size)parts.push(t.slice(i,i+size));
+  const n=parts.length,need=Math.ceil(MAXC/size),out=[];
+  for(let k=0;k<need;k++){
+    const lo=Math.floor(k*n/need),hi=Math.max(lo+1,Math.floor((k+1)*n/need));
+    out.push(parts[lo+Math.floor(Math.random()*(hi-lo))]);
+  }
+  return out.join('\n[…]\n');
+}
+async function load(files){
+  const s=$('#fst');
+  for(const f of files){
+    try{
+      st(s,'Leyendo '+f.name+'…');
+      let t='';
+      if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){
+        if(!window.pdfjsLib)throw new Error('sin lector');
+        const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+        for(let i=1;i<=pdf.numPages;i++){
+          const p=await pdf.getPage(i),c=await p.getTextContent();
+          t+=c.items.map(x=>x.str).join(' ')+'\n';
+        }
+      }else t=await f.text();
+      t=t.trim();
+      if(!t){st(s,f.name+' no tiene texto que leer (¿es un PDF escaneado como imagen?). Pega el texto a mano.',1);continue}
+      const a=$('#src');a.value+=(a.value?'\n\n':'')+t;
+      st(s,'Listo: '+f.name);
+    }catch(e){st(s,'No pude leer '+f.name+'. Pega el texto a mano.',1)}
+  }
+  upd();
+}
+$('#file').addEventListener('change',e=>{load([...e.target.files]);e.target.value=''});
+const dz=$('#dz');
+['dragenter','dragover'].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.add('on')}));
+['dragleave','drop'].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.remove('on')}));
+dz.addEventListener('drop',e=>load([...e.dataTransfer.files]));
+
+/* ---------- Generar examen ---------- */
+async function gen(se,btn){
+  const raw=$('#src').value.trim();
+  if(raw.length<150){st(se,'Agrega más material: con tan poco texto no se puede armar un examen.',1);return}
+  btn.disabled=true;st(se,'Escribiendo las preguntas…');
+  try{
+    const n=Math.min(15,Math.max(1,+$('#n').value||8)),ty=$('#type').value,df=$('#diff').value;
+    const td=ty==='mc'?'todas de opción múltiple':ty==='open'?'todas abiertas':'mitad de opción múltiple y mitad abiertas, mezcladas';
+    const p=`Eres un profesor que prepara un examen. Usa ÚNICAMENTE el material de abajo. Crea ${n} preguntas: ${td}. Dificultad: ${df}. Escribe en el idioma del material. Opción múltiple: 4 opciones, una sola correcta, distractores plausibles; "answer" es el índice (0-3) de la correcta; "explanation" es una frase breve. Abiertas: "ideal" es la respuesta modelo en máximo 2 frases con los puntos clave. Cubre partes distintas del material. Responde SOLO con JSON válido, sin texto extra ni bloques de código, con esta forma: {"questions":[{"type":"mc","q":"...","options":["a","b","c","d"],"answer":0,"explanation":"..."},{"type":"open","q":"...","ideal":"..."}]}\n\nMATERIAL:\n${pick(raw)}`;
+    const r=parse(await ask(p));
+    const qs=(r.questions||[]).filter(q=>q&&q.q&&(q.type==='open'?q.ideal:(Array.isArray(q.options)&&q.options.length>=2&&Number.isInteger(q.answer))));
+    if(!qs.length)throw new Error('JSON');
+    exam=qs;st(se,'');st($('#who'),'Preguntas escritas con '+used+'.');draw();show('exam');
+  }catch(e){st(se,errm(e),1)}
+  finally{btn.disabled=false}
+}
+$('#go').onclick=()=>gen($('#gst'),$('#go'));
+$('#again').onclick=()=>gen($('#rst'),$('#again'));
+$('#back1').onclick=$('#back2').onclick=()=>show('setup');
+
+/* ---------- Examen ---------- */
+function qhead(q,i,mark){
+  const a=mk('article','q'),l=mk('div'),b=mk('div');
+  l.append(mk('span','num',(i+1)+'.'));if(mark)l.append(mark);
+  b.append(mk('p','kind',q.type==='open'?'Pregunta abierta':'Opción múltiple'),mk('p','qt',q.q));
+  a.append(l,b);return[a,b];
+}
+function draw(){
+  const box=$('#qs');box.innerHTML='';
+  exam.forEach((q,i)=>{
+    const [a,b]=qhead(q,i);
+    if(q.type==='open'){
+      const t=mk('textarea','ruled');t.id='a'+i;t.placeholder='Escribe tu respuesta aquí…';b.append(t);
+    }else q.options.forEach((o,j)=>{
+      const l=mk('label','opt'),r=mk('input');r.type='radio';r.name='q'+i;r.value=j;
+      l.append(r,mk('span','',String.fromCharCode(97+j)+') '+o));b.append(l);
+    });
+    box.append(a);
+  });
+}
+$('#sub').onclick=async()=>{
+  const b=$('#sub');
+  ans=exam.map((q,i)=>{
+    if(q.type==='open')return{text:$('#a'+i).value.trim()};
+    const c=document.querySelector('input[name="q'+i+'"]:checked');
+    return{pick:c?+c.value:null};
+  });
+  const un=ans.filter((a,i)=>exam[i].type==='open'?!a.text:a.pick===null).length;
+  if(un&&!confirm('Te faltan '+un+' pregunta(s) sin responder. ¿Entregar de todos modos?'))return;
+  b.disabled=true;st($('#sst'),'Corrigiendo…');
+  const gr={};
+  try{
+    const items=exam.map((q,i)=>({i,q})).filter(x=>x.q.type==='open'&&ans[x.i].text);
+    if(items.length){
+      const data=items.map(({i,q})=>({i,pregunta:q.q,respuesta_modelo:q.ideal,respuesta_alumno:ans[i].text}));
+      const r=parse(await ask(`Eres un profesor que califica con justicia y rigor. Para cada item compara la respuesta del alumno con la respuesta modelo y da "score" de 0 a 10 (entero) y "feedback" breve (máximo 2 frases, en el idioma de la pregunta) que diga qué estuvo bien y qué faltó. Responde SOLO con JSON válido, sin texto extra: {"grades":[{"i":0,"score":7,"feedback":"..."}]}\n\n${JSON.stringify(data)}`));
+      (r.grades||[]).forEach(g=>{gr[g.i]={s:Math.max(0,Math.min(10,Math.round(+g.score||0))),fb:g.feedback||''}});
+    }
+    results(gr);st($('#sst'),'');
+  }catch(e){st($('#sst'),errm(e),1)}
+  finally{b.disabled=false}
+};
+
+/* ---------- Resultados ---------- */
+function results(gr){
+  const rv=$('#rv');rv.innerHTML='';let pts=0,ok=0;
+  exam.forEach((q,i)=>{
+    let sc,mark;
+    if(q.type==='mc')sc=ans[i].pick===q.answer?1:0;
+    else{const g=gr[i];sc=g?g.s/10:0}
+    const cls=sc>=.7?'ok':sc>0?'part':'bad';
+    mark=mk('span','mark '+cls,q.type==='mc'?(sc?'✓':'✗'):(gr[i]?gr[i].s:0)+'/10');
+    const [a,b]=qhead(q,i,mark);
+    if(q.type==='mc'){
+      q.options.forEach((o,j)=>{
+        const l=mk('div','opt n'+(j===q.answer?' c':j===ans[i].pick?' w':''));
+        l.append(mk('span','',String.fromCharCode(97+j)+') '+o));b.append(l);
+      });
+      if(ans[i].pick===null)b.append(mk('p','kind','Sin responder'));
+      if(q.explanation)b.append(mk('p','fb '+cls,q.explanation));
+    }else{
+      const x=mk('p','ans');x.append(mk('b','','Tu respuesta'),document.createTextNode(ans[i].text||'(sin respuesta)'));
+      const y=mk('p','ans');y.append(mk('b','','Respuesta esperada'),document.createTextNode(q.ideal));
+      b.append(x,y);
+      if(gr[i]&&gr[i].fb)b.append(mk('p','fb '+cls,gr[i].fb));
+    }
+    if(sc>=.7)ok++;pts+=sc;rv.append(a);
+  });
+  $('#pct').textContent=Math.round(pts/exam.length*100)+'%';
+  $('#sum').textContent=pts.toFixed(1).replace(/\.0$/,'')+' puntos de '+exam.length+'. Resolviste bien '+ok+' preguntas.';
+  st($('#rst'),'');show('res');
+}
+</script>
+</body>
+</html>
